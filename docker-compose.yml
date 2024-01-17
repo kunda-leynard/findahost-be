@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # remove this service if you dont need mysql
+  # mysql:
+  #   image: mysql:latest
+  #   restart: always
+  #   env_file: .env
+  #   networks:
+  #     - db
+  #   ports:
+  #     - '3306:3306'
+  #   volumes:
+  #     - nestjs-boilerplate:/var/lib/mysql
+
+  # remove this service if you dont need localstack
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      - AWS_DEFAULT_REGON=us-east-1
+      - EDGE_PORTT=4566
+      - SERVICES=lambda,s3
+    ports:
+      - '4566-4583:4566-4583'
+    volumes:
+      - nestjs-core:/tmp/localstack
+
+networks:
+  db:
+
+volumes:
+  nestjs-core:

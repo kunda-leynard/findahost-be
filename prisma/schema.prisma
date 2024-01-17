@@ -1,0 +1,28 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+  binaryTargets   = ["native", "rhel-openssl-1.1.x", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  firstName    String?
+  lastName     String?
+  mobile       String?
+  userRole     String?
+  email        String    @unique
+  password     String?
+  googleId     String?   @unique
+  refreshToken String?
+  registration String    @default("pending")
+  profileImage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+}
