@@ -2,21 +2,21 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+} from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
 
-import { IJwtPayload } from '../common/interfaces';
-import { LocalLoginDto, LocalRegisterDto } from './dto';
-import { DatabaseService } from '../common/database/database.service';
+import { IJwtPayload } from "../common/interfaces";
+import { LocalLoginDto, LocalRegisterDto } from "./dto";
+import { DatabaseService } from "../common/database/database.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
     private jwtService: JwtService,
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseService
   ) {}
 
   private async generateTokens(payload: IJwtPayload) {
@@ -41,12 +41,12 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(jwtPayload, {
-        secret: this.configService.getOrThrow('ACCESS_TOKEN_SECRET'),
-        expiresIn: '10m',
+        secret: this.configService.getOrThrow("ACCESS_TOKEN_SECRET"),
+        expiresIn: "1h", // "10m"
       }),
       this.jwtService.signAsync(jwtPayload, {
-        secret: this.configService.getOrThrow('REFRESH_TOKEN_SECRET'),
-        expiresIn: '7d',
+        secret: this.configService.getOrThrow("REFRESH_TOKEN_SECRET"),
+        expiresIn: "7d",
       }),
     ]);
 
@@ -70,7 +70,7 @@ export class AuthService {
 
     if (userDetails.password !== confirmPassword) {
       throw new BadRequestException(
-        `Password and confirm password does not match`,
+        `Password and confirm password does not match`
       );
     }
 
@@ -82,7 +82,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('Email already registered.');
+      throw new BadRequestException("Email already registered.");
     }
 
     const hashedPassword = await bcrypt.hash(userDetails.password, 12);
@@ -110,18 +110,20 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ForbiddenException('Invalid email or password');
+      throw new ForbiddenException("Invalid email or password");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new ForbiddenException('Invalid email or password');
+      throw new ForbiddenException("Invalid email or password");
     }
 
     const tokens = await this.generateTokens({
       sub: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
     });
 
     /**
@@ -145,7 +147,7 @@ export class AuthService {
     });
 
     if (!existingUser) {
-      throw new ForbiddenException('Invalid token');
+      throw new ForbiddenException("Invalid token");
     }
 
     await this.databaseService.users.update({

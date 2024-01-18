@@ -1,12 +1,15 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { ConfigModule } from "@nestjs/config";
 
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { S3Module } from './common/aws/s3/s3.module';
-import { DatabaseModule } from './common/database/database.module';
-import { JwtAuthGuard } from './common/guards';
+import { AuthModule } from "./auth/auth.module";
+import { UsersModule } from "./users/users.module";
+import { S3Module } from "./common/aws/s3/s3.module";
+import { DatabaseModule } from "./common/database/database.module";
+import { JwtAuthGuard } from "./common/guards";
+
+import { TwilioModule } from "./providers/twilio/twilio.module";
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -14,6 +17,7 @@ import { JwtAuthGuard } from './common/guards';
     DatabaseModule,
     AuthModule,
     UsersModule,
+    TwilioModule,
   ],
   providers: [
     {

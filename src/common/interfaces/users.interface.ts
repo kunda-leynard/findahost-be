@@ -1,4 +1,4 @@
-import { Users as UserEntity } from '@prisma/client';
+import { Users as UserEntity } from "@prisma/client";
 
 export interface IUser extends Partial<UserEntity> {
   id: string;
