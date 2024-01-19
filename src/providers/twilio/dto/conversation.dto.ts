@@ -10,10 +10,14 @@ import {
 } from "../twilio.interface";
 
 export class ConversationDto {
-  friendlyName: string;
+  friendlyName?: string;
   attributes?: string;
   uniqueName?: string;
   binding?: any;
+
+  @IsIn(["true", "false"])
+  @IsOptional()
+  xTwilioWebhookEnabled?: ConversationWebhookEnabledType;
 
   @IsIn(["inactive", "active", "closed"])
   @IsOptional()
@@ -25,5 +29,5 @@ export class ConversationDto {
 
   @Type(() => Links)
   @ValidateNested()
-  readonly links: Links;
+  readonly links?: Links;
 }

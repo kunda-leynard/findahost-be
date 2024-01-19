@@ -2,15 +2,16 @@ import { Injectable } from "@nestjs/common";
 import { TwilioService as TService } from "nestjs-twilio";
 import { queryParser } from "../utilities";
 
-import { ConversationDto, MessageDto } from "./dto";
+import { ConversationDto, MessageDto, ParticipantDto } from "./dto";
 import { ConversationEntity, MessageEntity } from "./entities";
+import { MessageProps } from "./twilio.interface";
 
 @Injectable()
 export class TwilioService {
   public constructor(private readonly twilioService: TService) {}
 
   // * Conversations
-  async createConversation(opt: ConversationDto) {
+  async createConversation(opt?: ConversationDto) {
     return this.twilioService.client.conversations.v1.conversations.create(opt);
   }
 
@@ -95,12 +96,9 @@ export class TwilioService {
 
   // * Messages
   async createMessage(cid: string, req: any, dto: MessageDto) {
-    const { firstName, lastName } = req.user;
-    let author = firstName + " " + lastName;
-
     return this.twilioService.client.conversations.v1
       .conversations(cid)
-      .messages.create({ ...dto, author });
+      .messages.create({ ...dto, author: req.sub });
   }
 
   async getMessageSpecific(chid: string, imid: string) {
@@ -172,5 +170,71 @@ export class TwilioService {
       .conversations(chid)
       .messages(imid)
       .remove();
+  }
+
+  // * Participant
+  // ? create participant (chat)
+  async createParticipantChat(chid: string, dto: ParticipantDto) {
+    return this.twilioService.client.conversations.v1
+      .conversations(chid)
+      .participants.create(dto);
+  }
+
+  async sendMessage(opt: MessageProps) {
+    const { channelId, req, messageObj } = opt.messageOpt;
+    const participant = opt.participant;
+    const participantId = opt.participantId;
+
+    return new Promise(async (resolve, reject) => {
+      if (channelId) {
+        resolve(channelId);
+      } else {
+        await this.createConversation({
+          friendlyName: "Taylor Switft",
+        }).then((doc) => {
+          console.log("Conversation created with an ID of ", doc.sid);
+          resolve(doc.sid);
+        });
+      }
+    }).then(async (conv: string) => {
+      return new Promise(async (resolve, reject) => {
+        if (participantId) {
+          resolve(participantId);
+        } else {
+          await this.createParticipantChat(conv, participant)
+            .then(async (_) => {
+              console.log("Participation created with an ID of ", _.sid);
+              resolve(_.sid);
+            })
+            .catch((e) => {
+              console.log(e);
+              return {
+                statusCode: 500,
+                error: e,
+                message: "Error in Participation creation.",
+              };
+            });
+        }
+      }).then(async (partId: string) => {
+        return await this.createMessage(conv, req, messageObj)
+          .then((doc) => {
+            console.log("Message created with an ID of ", doc.sid);
+            return {
+              statusCode: 200,
+              message: "Message Succesfully Created",
+              channelId: conv,
+              participationId: partId,
+            };
+          })
+          .catch((e) => {
+            console.log(e);
+            return {
+              statusCode: 500,
+              error: e,
+              message: "Error in Message creation.",
+            };
+          });
+      });
+    });
   }
 }
