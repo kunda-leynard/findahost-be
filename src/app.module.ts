@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 
@@ -9,6 +9,7 @@ import { DatabaseModule } from "./common/database/database.module";
 import { JwtAuthGuard } from "./common/guards";
 
 import { TwilioModule } from "./providers/twilio/twilio.module";
+import { AppLoggerMiddleware } from "./providers/middleware/logger";
 
 @Module({
   imports: [
@@ -26,4 +27,10 @@ import { TwilioModule } from "./providers/twilio/twilio.module";
     },
   ],
 })
-export class AppModule {}
+
+//  injects a logger
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(AppLoggerMiddleware).forRoutes("*");
+  }
+}

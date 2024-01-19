@@ -1,31 +1,23 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { Exclude } from "class-transformer";
 
 export class MessageEntity {
-  @ApiProperty({
-    type: String,
-    description: "Message author",
-  })
+  @Exclude()
+  accountSid: string;
+
+  @Exclude()
+  conversationSid: string;
+
+  sid: string;
   author: string;
-
-  @ApiProperty({
-    type: String,
-    description: "Message Body",
-  })
+  index: Number;
   body: string;
-
-  @ApiProperty({
-    type: String,
-    description: "Message Attributes",
-  })
+  media: any;
   attributes: string;
-
-  @ApiProperty({
-    type: String,
-  })
+  participantSid: string;
   dateCreated: Date;
-
-  @ApiProperty({
-    type: String,
-  })
   dateUpdated: Date;
+
+  constructor(partial: Partial<MessageEntity>) {
+    Object.assign(this, partial);
+  }
 }

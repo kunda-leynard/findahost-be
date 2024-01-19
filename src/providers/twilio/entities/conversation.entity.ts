@@ -1,36 +1,31 @@
-import { ApiProperty } from "@nestjs/swagger";
 import { ValidateNested, IsIn, IsOptional } from "class-validator";
-import { Type, Exclude } from "class-transformer";
+import { Exclude, Type } from "class-transformer";
 
-import {
-  Timers,
-  Links,
-  ConversationWebhookEnabledType,
-  ConversationState,
-} from "../twilio.interface";
+import { Timers, ConversationState } from "../twilio.interface";
 
 export class ConversationEntity {
-  friendlyName?: string;
-  uniqueName?: string;
-  attributes?: string;
-  dateCreated?: Date;
-  dateUpdated?: Date;
-  binding?: any;
-  url?: string;
+  sid: string;
+  friendlyName: string;
+  uniqueName: string;
+  attributes: string;
+  dateCreated: Date;
+  dateUpdated: Date;
+  binding: any;
+  url: string;
+  timers: Timers;
+  links: Record<any, any>;
+  state: ConversationState;
 
-  @IsIn(["true", "false"])
-  @IsOptional()
-  xTwilioWebhookEnabled?: ConversationWebhookEnabledType;
+  @Exclude()
+  accountSid: string;
 
-  @Type(() => Timers)
-  @ValidateNested()
-  readonly timers?: Timers;
+  @Exclude()
+  chatServiceSid: string;
 
-  @Type(() => Links)
-  @ValidateNested()
-  readonly links?: Links;
+  @Exclude()
+  messagingServiceSid: string;
 
-  @IsIn(["inactive", "active", "closed"])
-  @IsOptional()
-  state?: ConversationState;
+  constructor(partial: Partial<ConversationEntity>) {
+    Object.assign(this, partial);
+  }
 }

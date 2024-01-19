@@ -1,26 +1,45 @@
 import { Injectable } from "@nestjs/common";
 import { TwilioService as TService } from "nestjs-twilio";
-import { MessageListOpt } from "./twilio.interface";
 import { queryParser } from "../utilities";
 
 import { ConversationDto, MessageDto } from "./dto";
+import { ConversationEntity, MessageEntity } from "./entities";
 
 @Injectable()
 export class TwilioService {
   public constructor(private readonly twilioService: TService) {}
 
   // * Conversations
-  async createConversation(opt?: ConversationDto) {
+  async createConversation(opt: ConversationDto) {
     return this.twilioService.client.conversations.v1.conversations.create(opt);
   }
 
   async getSpecificConversation(cid: string) {
-    return this.twilioService.client.conversations.v1
+    return await this.twilioService.client.conversations.v1
       .conversations(cid)
       .fetch()
+      .then(
+        (e) =>
+          new ConversationEntity({
+            sid: e.sid,
+            accountSid: e.accountSid,
+            chatServiceSid: e.chatServiceSid,
+            messagingServiceSid: e.messagingServiceSid,
+            friendlyName: e.friendlyName,
+            uniqueName: e.uniqueName,
+            attributes: e.attributes,
+            dateCreated: e.dateCreated,
+            dateUpdated: e.dateUpdated,
+            binding: e.bindings,
+            url: e.url,
+            timers: e.timers,
+            links: e.links,
+            state: e.state,
+          })
+      )
       .catch((e) => {
         return {
-          statusCode: 404,
+          status: 404,
           message: "Conversation not found",
         };
       });
@@ -32,10 +51,34 @@ export class TwilioService {
         query: opt,
         keys: ["startDate", "endDate", "state", "pageSize", "limit"],
         parseToIntKeys: ["pageSize", "limit"],
-        //? can freely add new method on this functions for more validation in queries
       });
 
-    return this.twilioService.client.conversations.v1.conversations.list(opt);
+    let conversations =
+      await this.twilioService.client.conversations.v1.conversations
+        .list(opt)
+        .then((doc) =>
+          doc.map(
+            (e) =>
+              new ConversationEntity({
+                sid: e.sid,
+                accountSid: e.accountSid,
+                chatServiceSid: e.chatServiceSid,
+                messagingServiceSid: e.messagingServiceSid,
+                friendlyName: e.friendlyName,
+                uniqueName: e.uniqueName,
+                attributes: e.attributes,
+                dateCreated: e.dateCreated,
+                dateUpdated: e.dateUpdated,
+                binding: e.bindings,
+                url: e.url,
+                timers: e.timers,
+                links: e.links,
+                state: e.state,
+              })
+          )
+        );
+
+    return conversations;
   }
 
   async updateConversation(cid: string, opt?: ConversationDto) {
@@ -64,12 +107,27 @@ export class TwilioService {
     return this.twilioService.client.conversations.v1
       .conversations(chid)
       .messages(imid)
-      .fetch();
+      .fetch()
+      .then(
+        (e) =>
+          new MessageEntity({
+            accountSid: e.accountSid,
+            conversationSid: e.conversationSid,
+            sid: e.sid,
+            author: e.author,
+            index: e.index,
+            body: e.body,
+            media: e.media,
+            attributes: e.attributes,
+            participantSid: e.participantSid,
+            dateCreated: e.dateCreated,
+            dateUpdated: e.dateUpdated,
+          })
+      );
   }
 
   async getMessage(cid: string, opt?: Record<any, any>) {
     // add order: 'desc' for latest message fetch
-
     if (opt)
       opt = queryParser({
         query: opt,
@@ -77,9 +135,29 @@ export class TwilioService {
         parseToIntKeys: ["pageSize", "limit"],
       });
 
-    return this.twilioService.client.conversations.v1
+    let messages = await this.twilioService.client.conversations.v1
       .conversations(cid)
-      .messages.list(opt);
+      .messages.list(opt)
+      .then((doc) =>
+        doc.map(
+          (e) =>
+            new MessageEntity({
+              accountSid: e.accountSid,
+              conversationSid: e.conversationSid,
+              sid: e.sid,
+              author: e.author,
+              index: e.index,
+              body: e.body,
+              media: e.media,
+              attributes: e.attributes,
+              participantSid: e.participantSid,
+              dateCreated: e.dateCreated,
+              dateUpdated: e.dateUpdated,
+            })
+        )
+      );
+
+    return messages;
   }
 
   async updateMessage(chid: string, imid: string, dto: MessageDto) {

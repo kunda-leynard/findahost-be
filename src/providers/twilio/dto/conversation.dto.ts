@@ -10,19 +10,10 @@ import {
 } from "../twilio.interface";
 
 export class ConversationDto {
-  sid?: string;
-  friendlyName?: string;
-  dateCreated?: Date;
-  dateUpdated?: Date;
+  friendlyName: string;
   attributes?: string;
-  messagingServiceSid?: string;
   uniqueName?: string;
   binding?: any;
-  url?: string;
-
-  @IsIn(["true", "false"])
-  @IsOptional()
-  xTwilioWebhookEnabled?: ConversationWebhookEnabledType;
 
   @IsIn(["inactive", "active", "closed"])
   @IsOptional()

@@ -42,7 +42,7 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.getOrThrow("ACCESS_TOKEN_SECRET"),
-        expiresIn: "1h", // "10m"
+        expiresIn: "12h", // "10m"
       }),
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.getOrThrow("REFRESH_TOKEN_SECRET"),

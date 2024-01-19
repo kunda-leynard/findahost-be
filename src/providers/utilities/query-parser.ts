@@ -1,4 +1,4 @@
-import { ParserOptions } from "./";
+import { ParserOptions } from ".";
 
 export const queryParser = (opt: ParserOptions): Record<string, any> => {
   if (typeof opt.query != "object") throw Error("Query is not in Object Form");
