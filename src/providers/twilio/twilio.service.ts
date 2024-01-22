@@ -2,13 +2,19 @@ import { Injectable } from "@nestjs/common";
 import { TwilioService as TService } from "nestjs-twilio";
 import { queryParser } from "../utilities";
 
-import { ConversationDto, MessageDto, ParticipantDto } from "./dto";
+import {
+  ConversationDto,
+  SendMessageDto,
+  ParticipantDto,
+  MessageDto,
+} from "./dto";
 import { ConversationEntity, MessageEntity } from "./entities";
-import { MessageProps } from "./twilio.interface";
 
 @Injectable()
 export class TwilioService {
   public constructor(private readonly twilioService: TService) {}
+
+  // ** HELPERS
 
   // * Conversations
   async createConversation(opt?: ConversationDto) {
@@ -95,10 +101,10 @@ export class TwilioService {
   }
 
   // * Messages
-  async createMessage(cid: string, req: any, dto: MessageDto) {
-    return this.twilioService.client.conversations.v1
+  async createMessage(cid: string, dto: MessageDto) {
+    return await this.twilioService.client.conversations.v1
       .conversations(cid)
-      .messages.create({ ...dto, author: req.sub });
+      .messages.create(dto);
   }
 
   async getMessageSpecific(chid: string, imid: string) {
@@ -174,67 +180,87 @@ export class TwilioService {
 
   // * Participant
   // ? create participant (chat)
-  async createParticipantChat(chid: string, dto: ParticipantDto) {
+  async createParticipantChat(chid: string, dto?: ParticipantDto) {
     return this.twilioService.client.conversations.v1
       .conversations(chid)
       .participants.create(dto);
   }
 
-  async sendMessage(opt: MessageProps) {
-    const { channelId, req, messageObj } = opt.messageOpt;
-    const participant = opt.participant;
-    const participantId = opt.participantId;
+  async getParticipant(chid: string, id: string) {
+    return this.twilioService.client.conversations.v1
+      .conversations(chid)
+      .participants(id)
+      .fetch();
+  }
 
-    return new Promise(async (resolve, reject) => {
-      if (channelId) {
-        resolve(channelId);
-      } else {
-        await this.createConversation({
-          friendlyName: "Taylor Switft",
-        }).then((doc) => {
-          console.log("Conversation created with an ID of ", doc.sid);
-          resolve(doc.sid);
-        });
-      }
-    }).then(async (conv: string) => {
-      return new Promise(async (resolve, reject) => {
-        if (participantId) {
-          resolve(participantId);
-        } else {
-          await this.createParticipantChat(conv, participant)
-            .then(async (_) => {
-              console.log("Participation created with an ID of ", _.sid);
-              resolve(_.sid);
-            })
-            .catch((e) => {
-              console.log(e);
-              return {
-                statusCode: 500,
-                error: e,
-                message: "Error in Participation creation.",
-              };
-            });
-        }
-      }).then(async (partId: string) => {
-        return await this.createMessage(conv, req, messageObj)
-          .then((doc) => {
-            console.log("Message created with an ID of ", doc.sid);
-            return {
-              statusCode: 200,
-              message: "Message Succesfully Created",
-              channelId: conv,
-              participationId: partId,
-            };
+  // ** END OF HELPERS
+
+  // ** CORE METHODS
+  async sendMessage(opt: SendMessageDto) {
+    let { channelId, participantId, identity, message } = opt;
+
+    if (!channelId) {
+      channelId = await this.createConversation({
+        friendlyName: identity,
+      }).then((e) => e.sid);
+    }
+
+    // refactor into promise because it raises an error "Maximum stack size exceed"
+    if (identity) {
+      await new Promise(async (resolve, reject) => {
+        await this.getParticipant(channelId, identity)
+          .then((e) => {
+            resolve(e.sid);
           })
-          .catch((e) => {
-            console.log(e);
-            return {
-              statusCode: 500,
-              error: e,
-              message: "Error in Message creation.",
-            };
+          .catch(() => reject());
+      })
+        .then((e: string) => {
+          participantId = e;
+        })
+        .catch(async (e) => {
+          participantId = await this.createParticipantChat(channelId, {
+            identity,
+          }).then((e) => e.sid);
+        });
+    } else {
+      if (participantId) {
+        // check the participant if exist in conversation
+        await new Promise(async (resolve, reject) => {
+          await this.getParticipant(channelId, participantId).catch((e) => {
+            reject();
           });
+        }).catch(async (e) => {
+          participantId = await this.createParticipantChat(channelId, {
+            identity,
+          }).then((e) => e.sid);
+        });
+      } else {
+        participantId = await this.createParticipantChat(channelId, {
+          identity,
+        }).then((e) => e.sid);
+      }
+    }
+
+    // then create message :)
+    return await this.createMessage(channelId, {
+      body: message,
+      author: identity,
+    })
+      .then(() => {
+        return {
+          statusCode: 200,
+          message: "Message Succesfully Created",
+          channelId,
+          participationId: participantId,
+        };
+      })
+      .catch((e) => {
+        console.log(e);
+        return {
+          statusCode: 500,
+          error: e,
+          message: "Error in Message creation.",
+        };
       });
-    });
   }
 }
